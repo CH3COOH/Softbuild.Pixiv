@@ -1,4 +1,6 @@
-﻿using System;
+﻿//#define PixivAPI
+
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -12,12 +14,49 @@ namespace Softbuild.Pixiv
         /// <summary>
         /// PixivURL
         /// </summary>
+#if !PixivAPI
         public const string PixivUrl = "http://www.pixiv.net/";
+#else
+        public const string PixivUrl = "http://iphone.pxv.jp/iphone/";
+#endif
+
+        /// <summary>
+        /// ログインURL
+        /// </summary>
+#if !PixivAPI
+        public const string LoginUrl = "http://www.pixiv.net/";
+#else
+        public const string LoginUrl = "http://iphone.pxv.jp/iphone/login.php";       
+#endif
+
+        /// <summary>
+        /// ダミーアクセスのURL
+        /// </summary>
+#if !PixivAPI
+        public const string DummyAccessUrl = "http://www.pixiv.net/mypage.php";
+#else
+        public const string DummyAccessUrl = "http://iphone.pxv.jp/iphone/maintenance.php?software-version=1.0";       
+#endif
+
+        /// <summary>
+        /// ダミーのブラウザ UserAgent
+        /// </summary>
+#if !PixivAPI
+        public const string UserAgent
+            = "User-Agent: Mozilla/5.0 (Windows; U; Windows NT 5.1; ja; rv:1.9.0.6) Gecko/2009011913 Firefox/3.0.6";
+#else
+        public const string UserAgent
+            = "User-Agent: pixiv/1.0 CFNetwork/459 Darwin/10.0.0d3";
+#endif
 
         /// <summary>
         /// ランキングURL
         /// </summary>
+#if !PixivAPI
         public const string RankingUrl = "http://www.pixiv.net/ranking.php";
+#else
+        public const string RankingUrl = "http://iphone.pxv.jp/iphone/ranking.php";
+#endif
 
         /// <summary>
         /// R18向けランキングURL
@@ -25,7 +64,6 @@ namespace Softbuild.Pixiv
         public const string R18RankingUrl = "http://www.pixiv.net/ranking_r18.php";
 
 
-        public const string LoginUrl = "http://www.pixiv.net/index.php";
         public const string MyPageUrl = "http://www.pixiv.net/mypage.php";
         public const string BookmarkUrl = "http://www.pixiv.net/bookmark_add.php";
         
@@ -35,16 +73,11 @@ namespace Softbuild.Pixiv
         public const string FavoriteUrl = "http://www.pixiv.net/bookmark_new_illust.php";
         public const string MyPixivUrl = "http://www.pixiv.net/mypixiv_new_illust.php";
 
-        public const string UserAgent
-            = "User-Agent: Mozilla/5.0 (Windows; U; Windows NT 5.1; ja; rv:1.9.0.6) Gecko/2009011913 Firefox/3.0.6";
-        public const string LoginFormat
-            = "mode=login&pixiv_id={0}&pass={1}&submit.x=28&submit.y=16";
-        
         /// <summary>
         /// 正規表現：セッションIDの取得
         /// </summary>
         public const string cookieSessionIDPattan
-            = "^(?<session_id>PHPSESSID=.*); path=/; domain=.pixiv.net";
+            = "(?<session_id>PHPSESSID=[0-9a-z]+); path=/; domain=.pixiv.net";
 
         /// <summary>
         /// 正規表現：イラストIDの取得
@@ -53,10 +86,10 @@ namespace Softbuild.Pixiv
 
 
         public const string NewIllustPattan
-            = "<li><a href=\"(?<illust_id>member_illust.php\\?[-_.!~*\'()a-zA-Z0-9;\\/?:\\@&=+\\$,%#]+\"><img src=\"(?<thumnail>(http:\\/\\/img[0-9]+.pixiv.net/img/(?<author>[a-zA-Z0-9_-]*)/(?<thumnailFileName>[a-zA-Z0-9_.]*)))\" border=\"0\" /></a><br /><div class=\"pdgTop5\">(?<title>[^<^>]*)</div></li>";
+            = "<li><a href=\"(?<illust_id>member_illust.php\\?[-_.!~*\'()a-zA-Z0-9;\\/?:\\@&=+\\$,%#]+)\"><img src=\"(?<thumnail>(http:\\/\\/img[0-9]+.pixiv.net/img/(?<author>[a-zA-Z0-9_-]*)/(?<thumnailFileName>[a-zA-Z0-9_.]*)))\" .*?></a><br /><div class=\"pdgTop5\">(?<title>.+?)</div></li>";
         
         public const string RankingPattan
-            = "<span class=\"f14b\"><a href=\"[-_.!~*\'()a-zA-Z0-9;\\/?:\\@&=+\\$,%#]+\">(?<title>[^<^>]*)</a></span></td>([\\n\\s^<^>]*</?tr>){2}([\\n\\s^<^>]*</?td[^<^>]*>[^<^>]*){3}<a href=\"(?<illust_id>member_illust.php\\?[-_.!~*\'()a-zA-Z0-9;\\/?:\\@&=+\\$,%#]+)\"><img src=\"(?<thumnail>(http:\\/\\/img[0-9]+.pixiv.net/img/(?<author>[a-zA-Z0-9_-]*)/(?<thumnailFileName>[a-zA-Z0-9_.]*)))";
+            = "<span class=\"f14b\"><a href=\"[-_.!~*\'()a-zA-Z0-9;\\/?:\\@&=+\\$,%#]+\">(?<title>[^<]*)</a></span></td>([\\n\\s^<^>]*</?tr>){2}([\\n\\s^<^>]*</?td[^<^>]*>[^<^>]*){3}<a href=\"(?<illust_id>member_illust.php\\?[-_.!~*\'()a-zA-Z0-9;\\/?:\\@&=+\\$,%#]+)\"><img src=\"(?<thumnail>(http:\\/\\/img[0-9]+.pixiv.net/img/(?<author>[a-zA-Z0-9_-]*)/(?<thumnailFileName>[a-zA-Z0-9_.]*)))";
 
         /// <summary>
         /// 正規表現：組み込みHTMLの取得

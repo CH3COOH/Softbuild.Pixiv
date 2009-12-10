@@ -1,4 +1,6 @@
-﻿using System;
+﻿//#define PixivAPI
+
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -22,36 +24,28 @@ namespace Softbuild.Pixiv
 
             string reffer = "";
 
+#if !PixivAPI
             // 1回目：ログイン前にCookie情報を残すために捨てアクセス
-            req = (HttpWebRequest)HttpWebRequest.Create(ConstData.MyPageUrl);
-            req.Proxy = Proxy;
-            req.AllowAutoRedirect = false;
-            req.UserAgent = ConstData.UserAgent;
-
+            req = this.GetRequest(ConstData.DummyAccessUrl, "");
             // 1回目応答：Cookieを取得する
             using (res = (HttpWebResponse)req.GetResponse())
             {
                 Cookie = GetSessionID(res.GetResponseHeader("Set-Cookie"));
             }
+#endif
 
             // 2回目：ログイン情報を送出する(POST)
-            req = (HttpWebRequest)HttpWebRequest.Create(res.Headers["Location"]);
-            req.Proxy = Proxy;
-            req.AllowAutoRedirect = false;
-            req.UserAgent = ConstData.UserAgent;
-            req.Referer = reffer;
-            req.Headers.Add("Cookie", Cookie);
-            req.Method = "POST";
-            req.ContentType = "application/x-www-form-urlencoded";
+            Dictionary<string, string> parms = new Dictionary<string, string>();
+            parms["mode"] = "login";
+            parms["pixiv_id"] = PixivID;
+            parms["pass"] = Password;
+            parms["skip"] = "1";
 
-            // 
-            var msg = string.Format(ConstData.LoginFormat, PixivID, Password);
-            req.ContentLength = Encoding.UTF8.GetByteCount(msg);
-            using (StreamWriter sw = new StreamWriter(req.GetRequestStream()))
-            {
-                sw.Write(msg);
-            }
-
+#if !PixivAPI
+            req = this.PostRequest(res.Headers["Location"], reffer, parms);
+#else
+            req = this.PostRequest(ConstData.LoginUrl, reffer, parms);
+#endif
             // 2回目応答：Cookieを取得する
             HttpStatusCode statusCode = HttpStatusCode.NotFound;
             using (res = (HttpWebResponse)req.GetResponse())
@@ -68,17 +62,32 @@ namespace Softbuild.Pixiv
                 req.Proxy = Proxy;
                 req.AllowAutoRedirect = false;
                 req.UserAgent = ConstData.UserAgent;
+#if !PixivAPI
                 req.Referer = reffer;
                 req.Headers.Add("Cookie", Cookie);
                 req.GetResponse().Close();
+#else
+                req.Referer = "http://iphone.pxv.jp/";
+                req.Headers.Add("Cookie", "current-language=ja; locale-country-code=JP; locale-identifier=ja_JP; locale-language-code=ja; software-version=1.0");
+                try
+                {
+                    req.GetResponse().Close();
+                }
+                catch (WebException ex)
+                {
+                    // throw ex;
+                }
+#endif
             }
 
+#if !PixivAPI
             // ちゃんとログイン出来たかを確認する
             if ((statusCode == HttpStatusCode.OK) ||
                 (req.RequestUri.AbsoluteUri != ConstData.MyPageUrl))
             {
                 throw new Exception("pixivマイページへの遷移に失敗");
             }
+#endif
         }
         #endregion
 
@@ -91,8 +100,15 @@ namespace Softbuild.Pixiv
         /// <returns></returns>
         public List<Illust> GetIllusts(PixivPages page, int pageCount)
         {
+#if !PixivAPI
+            string pageUrl = string.Format(page.ToUrlFormat(), pageCount);
+#else
+            string pageUrl = string.Format(page.ToUrlFormat(), pageCount);
+            pageUrl = pageUrl + "&" + this.Cookie;
+#endif
+
             // 指定したページからイラスト一覧のテキストを取得する
-            string text = GetHtml(string.Format(page.ToUrlFormat(), pageCount));
+            string text = GetHtml(pageUrl);
 
             // 1ページあたりのイラスト数を取得する
             int rankBase = 0;
@@ -132,7 +148,14 @@ namespace Softbuild.Pixiv
             HttpWebRequest req = GetRequest(illust.ImageUrl, illust.Url);
             using (HttpWebResponse res = (HttpWebResponse)req.GetResponse())
             {
-                bmp = new Bitmap(res.GetResponseStream());
+                try
+                {
+                    bmp = new Bitmap(res.GetResponseStream());
+                }
+                catch
+                {
+                    bmp = null;
+                }
             }
 
             return bmp;
@@ -184,11 +207,19 @@ namespace Softbuild.Pixiv
 
             // ログイン情報を取得する為の正規表現
             Regex ssReg = new Regex(ConstData.cookieSessionIDPattan);
-
-            if ((ssReg.IsMatch(value)))
+            if (ssReg.IsMatch(value))
             {
-                var match = ssReg.Match(value);
+                Match match = ssReg.Match(value);
+#if !PixivAPI
                 cookie = match.Groups["session_id"].Value;
+#else
+                while (match.Success)
+                {
+                    cookie = match.Groups["session_id"].Value;
+                    match = match.NextMatch();
+                }
+#endif
+
             }
 
             return cookie;
@@ -292,6 +323,7 @@ namespace Softbuild.Pixiv
             // イラストへの直URLを取得する
             if ((title != string.Empty) && (illust.ImageUrl == string.Empty || illust.ImageUrl == null))
             {
+                title = title.Replace("|", @"\|");
                 title = title.Replace("+", @"\+");
                 title = title.Replace("*", @"\*");
                 title = title.Replace("[", @"\[");
@@ -346,11 +378,55 @@ namespace Softbuild.Pixiv
                 {
                     illust.閲覧数 = long.Parse(match.Groups["eturan"].Value);
                     illust.評価数 = long.Parse(match.Groups["eturan2"].Value);
-                    illust.総合点数 = long.Parse(match.Groups["eturan3"].Value);
+                    illust.総合点数 = long.Parse(match.Groups["eturan3"].Value);                    
                     match = match.NextMatch();
                 }
             }
         }
         #endregion
+
+        public void AddFavUser(Illust illust)
+        {
+            string url = "http://www.pixiv.net/bookmark_add.php";
+
+            Dictionary<string, string> parms = new Dictionary<string, string>();
+            parms["mode"] = "add";
+            parms["type"] = "user";
+            parms["id"] = illust.AuthorID;
+            parms["restrict"] = "0";
+            parms["tag"] = "";
+
+            HttpWebRequest req = PostRequest(url, illust.Url, parms);
+            req.GetResponse().Close();
+            //using(HttpWebResponse res = (HttpWebResponse)req.GetResponse())
+            //{
+
+
+
+            //}
+        }
+
+        public void AddBookmark(Illust illust)
+        {
+            string url = "http://www.pixiv.net/bookmark_add.php";
+
+            Dictionary<string, string> parms = new Dictionary<string, string>();
+            parms["mode"] = "add";
+            parms["type"] = "illust";
+            parms["restrict"] = "0";
+            parms["tag"] = "";
+            parms["comment"] = "";
+            parms["id"] = illust.IllustID.ToString();
+
+            HttpWebRequest req = PostRequest(url, illust.Url, parms);
+            req.GetResponse().Close();
+            //using(HttpWebResponse res = (HttpWebResponse)req.GetResponse())
+            //{
+                
+
+
+            //}
+        }
+
     }
 }

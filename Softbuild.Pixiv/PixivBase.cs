@@ -60,6 +60,40 @@ namespace Softbuild.Pixiv
             return req;
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="url"></param>
+        /// <param name="referer"></param>
+        /// <returns></returns>
+        protected HttpWebRequest PostRequest(string url, string referer, Dictionary<string,string> prams)
+        {
+            HttpWebRequest req = (HttpWebRequest)HttpWebRequest.Create(url);
+            req.Proxy = Proxy;
+            req.AllowAutoRedirect = false;
+            req.UserAgent = ConstData.UserAgent;
+            req.Referer = referer;
+            req.Headers.Add("Cookie", Cookie);
+            req.Timeout = 30 * 1000;
+
+            req.Method = "POST";
+            req.ContentType = "application/x-www-form-urlencoded";
+
+            System.Text.StringBuilder sb = new StringBuilder();
+            Dictionary<string, string>.Enumerator e = prams.GetEnumerator();
+            while (e.MoveNext())
+            {
+                sb.AppendFormat("{0}={1}&", e.Current.Key, e.Current.Value);
+            }
+            req.ContentLength = System.Text.Encoding.UTF8.GetByteCount(sb.ToString());
+            using(System.IO.StreamWriter sw = new System.IO.StreamWriter(req.GetRequestStream()))
+            {            
+                sw.Write(sb.ToString());
+            }
+
+            return req;
+        }
+
         #region "GETメソッドにて取得"
         /// <summary>
         /// GETメソッドにて取得

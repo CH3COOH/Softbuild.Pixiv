@@ -6,12 +6,12 @@ using System.Runtime.InteropServices;
 // アセンブリに関連付けられている情報を変更するには、
 // これらの属性値を変更してください。
 [assembly: AssemblyTitle("Softbuild.Pixiv")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyDescription("Pixivアクセス用ライブラリ")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("Microsoft")]
+[assembly: AssemblyCompany("Softbuild")]
 [assembly: AssemblyProduct("Softbuild.Pixiv")]
-[assembly: AssemblyCopyright("Copyright © Microsoft 2009")]
-[assembly: AssemblyTrademark("")]
+[assembly: AssemblyCopyright("Copyright ©Softbuild 2009")]
+[assembly: AssemblyTrademark("Softbuild")]
 [assembly: AssemblyCulture("")]
 
 // ComVisible を false に設定すると、その型はこのアセンブリ内で COM コンポーネントから 
